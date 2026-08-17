@@ -1,3 +1,9 @@
+let rawGamma = 0;
+let rawBeta = 0;
+
+let neutralGamma = 0;
+let neutralBeta = 0;
+
 let tiltX = 0;
 let tiltY = 0;
 
@@ -5,8 +11,10 @@ let smoothX = 0;
 let smoothY = 0;
 
 let motionEnabled = false;
+let hasOrientationData = false;
 
 let motionButton;
+let calibrateButton;
 
 let sensitivitySlider;
 let sensitivityLabel;
@@ -24,8 +32,6 @@ let bgColorPicker;
 
 function setup() {
 
-  // Responsive canvas:
-  // fills desktop, tablet or phone screen
   createCanvas(windowWidth, windowHeight);
 
   pixelDensity(1);
@@ -33,14 +39,25 @@ function setup() {
 
 
   // --------------------------------------------------
-  // ENABLE MOTION BUTTON
+  // ENABLE MOTION
   // --------------------------------------------------
 
   motionButton = createButton("ENABLE PHONE MOTION");
-
   motionButton.position(20, 20);
-
   motionButton.mousePressed(enableMotion);
+
+
+  // --------------------------------------------------
+  // CALIBRATE
+  // --------------------------------------------------
+
+  calibrateButton = createButton("CALIBRATE");
+  calibrateButton.position(20, 52);
+
+  calibrateButton.mousePressed(calibrateMotion);
+
+  // hidden until motion is enabled
+  calibrateButton.hide();
 
 
   // --------------------------------------------------
@@ -48,11 +65,8 @@ function setup() {
   // --------------------------------------------------
 
   sensitivityLabel = createDiv("MOTION 12");
-
-  sensitivityLabel.position(20, 65);
-
+  sensitivityLabel.position(20, 92);
   styleLabel(sensitivityLabel);
-
 
   sensitivitySlider = createSlider(
     2,
@@ -61,12 +75,8 @@ function setup() {
     0.5
   );
 
-  sensitivitySlider.position(20, 88);
-
-  sensitivitySlider.style(
-    "width",
-    "160px"
-  );
+  sensitivitySlider.position(20, 115);
+  sensitivitySlider.style("width", "160px");
 
 
   // --------------------------------------------------
@@ -74,11 +84,8 @@ function setup() {
   // --------------------------------------------------
 
   blobSizeLabel = createDiv("BLOB SIZE 1.00");
-
-  blobSizeLabel.position(20, 120);
-
+  blobSizeLabel.position(20, 147);
   styleLabel(blobSizeLabel);
-
 
   blobSizeSlider = createSlider(
     0.3,
@@ -87,44 +94,32 @@ function setup() {
     0.01
   );
 
-  blobSizeSlider.position(20, 143);
-
-  blobSizeSlider.style(
-    "width",
-    "160px"
-  );
+  blobSizeSlider.position(20, 170);
+  blobSizeSlider.style("width", "160px");
 
 
   // --------------------------------------------------
-  // BACKGROUND COLOUR
+  // BACKGROUND
   // --------------------------------------------------
 
   let bgLabel = createDiv("BG");
-
-  bgLabel.position(20, 178);
-
+  bgLabel.position(20, 205);
   styleLabel(bgLabel);
 
-
   bgColorPicker = createColorPicker("#000000");
-
-  bgColorPicker.position(20, 200);
+  bgColorPicker.position(20, 227);
 
 
   // --------------------------------------------------
-  // SECOND BLOB COLOUR
+  // REAR BLOB COLOUR
   // --------------------------------------------------
 
   let blobLabel = createDiv("BLOB COLOUR");
-
-  blobLabel.position(20, 240);
-
+  blobLabel.position(20, 267);
   styleLabel(blobLabel);
 
-
   blobColorPicker = createColorPicker("#888888");
-
-  blobColorPicker.position(20, 262);
+  blobColorPicker.position(20, 289);
 }
 
 
@@ -158,10 +153,7 @@ function draw() {
 
 
   // --------------------------------------------------
-  // RESPONSIVE BASE BLOB SIZE
-  //
-  // Uses the shortest screen dimension,
-  // so it adapts to portrait / landscape / desktop.
+  // RESPONSIVE BLOB SIZE
   // --------------------------------------------------
 
   let baseBlobSize =
@@ -197,8 +189,6 @@ function draw() {
 
   else {
 
-    // Mouse position relative to centre
-
     let nx =
       (mouseX - width / 2) /
       (width / 2);
@@ -208,61 +198,39 @@ function draw() {
       (height / 2);
 
 
-    nx = constrain(
-      nx,
-      -1,
-      1
-    );
-
-    ny = constrain(
-      ny,
-      -1,
-      1
-    );
-
-
-    // ------------------------------------------------
-    // Responsive mouse movement
-    // ------------------------------------------------
-
-    let maxMoveX =
-      width * 0.28;
-
-    let maxMoveY =
-      height * 0.28;
+    nx = constrain(nx, -1, 1);
+    ny = constrain(ny, -1, 1);
 
 
     targetX =
-      nx * maxMoveX;
+      nx * width * 0.28;
 
     targetY =
-      ny * maxMoveY;
+      ny * height * 0.28;
   }
 
 
   // --------------------------------------------------
-  // SMOOTH INTERPOLATION
+  // SMOOTH MOVEMENT
   // --------------------------------------------------
 
   smoothX =
     lerp(
       smoothX,
       targetX,
-      0.10
+      0.08
     );
 
   smoothY =
     lerp(
       smoothY,
       targetY,
-      0.10
+      0.08
     );
 
 
   // --------------------------------------------------
-  // REST POSITION
-  //
-  // Both blobs overlap exactly in the centre
+  // CENTRE POSITION
   // --------------------------------------------------
 
   let centerX =
@@ -273,9 +241,9 @@ function draw() {
 
 
   // --------------------------------------------------
-  // REAR / COLOUR BLOB
+  // REAR BLOB
   //
-  // Moves slightly in the opposite direction
+  // subtle opposite parallax
   // --------------------------------------------------
 
   let blobX =
@@ -289,8 +257,6 @@ function draw() {
 
   // --------------------------------------------------
   // FRONT / WHITE BLOB
-  //
-  // Follows mouse / phone tilt
   // --------------------------------------------------
 
   let lightX =
@@ -303,7 +269,7 @@ function draw() {
 
 
   // --------------------------------------------------
-  // DRAW REAR BLOB
+  // DRAW BLOBS
   // --------------------------------------------------
 
   drawSoftBlob(
@@ -313,10 +279,6 @@ function draw() {
     blobColorPicker.color()
   );
 
-
-  // --------------------------------------------------
-  // DRAW FRONT / WHITE BLOB
-  // --------------------------------------------------
 
   drawSoftBlob(
     lightX,
@@ -328,7 +290,7 @@ function draw() {
 
 
 // ----------------------------------------------------
-// SOFT RADIAL BLOB
+// SOFT BLOB
 // ----------------------------------------------------
 
 function drawSoftBlob(
@@ -403,43 +365,99 @@ function drawSoftBlob(
 
 function handleOrientation(event) {
 
-  // --------------------------------------------------
-  // LEFT / RIGHT
-  //
-  // gamma ≈ -90 → +90
-  // --------------------------------------------------
-
-  if (event.gamma !== null) {
-
-    tiltX =
-      constrain(
-        event.gamma,
-        -30,
-        30
-      );
+  if (
+    event.gamma === null ||
+    event.beta === null
+  ) {
+    return;
   }
 
 
+  rawGamma =
+    event.gamma;
+
+  rawBeta =
+    event.beta;
+
+  hasOrientationData =
+    true;
+
+
   // --------------------------------------------------
-  // FORWARD / BACK
+  // MOTION RELATIVE TO CALIBRATED POSITION
   // --------------------------------------------------
 
-  if (event.beta !== null) {
+  let differenceGamma =
+    rawGamma -
+    neutralGamma;
 
-    // Temporary neutral portrait position.
-    // We can replace this with CALIBRATE next.
-
-    let adjustedBeta =
-      event.beta - 45;
+  let differenceBeta =
+    rawBeta -
+    neutralBeta;
 
 
-    tiltY =
-      constrain(
-        adjustedBeta,
-        -30,
-        30
-      );
+  // --------------------------------------------------
+  // LIMIT EXTREME MOTION
+  // --------------------------------------------------
+
+  tiltX =
+    constrain(
+      differenceGamma,
+      -30,
+      30
+    );
+
+  tiltY =
+    constrain(
+      differenceBeta,
+      -30,
+      30
+    );
+}
+
+
+// ----------------------------------------------------
+// CALIBRATE
+//
+// Current phone orientation becomes centre.
+// ----------------------------------------------------
+
+function calibrateMotion() {
+
+  if (!hasOrientationData) {
+    return;
   }
+
+
+  neutralGamma =
+    rawGamma;
+
+  neutralBeta =
+    rawBeta;
+
+
+  // reset movement immediately
+
+  tiltX = 0;
+  tiltY = 0;
+
+  smoothX = 0;
+  smoothY = 0;
+
+
+  calibrateButton.html(
+    "CALIBRATED"
+  );
+
+
+  setTimeout(
+    () => {
+      calibrateButton.html(
+        "CALIBRATE"
+      );
+    },
+    800
+  );
 }
 
 
@@ -452,7 +470,7 @@ async function enableMotion() {
   try {
 
     // ------------------------------------------------
-    // iPhone / iPad permission
+    // iPHONE / iPAD PERMISSION
     // ------------------------------------------------
 
     if (
@@ -476,7 +494,7 @@ async function enableMotion() {
 
 
     // ------------------------------------------------
-    // START LISTENING
+    // START SENSOR
     // ------------------------------------------------
 
     window.addEventListener(
@@ -487,9 +505,29 @@ async function enableMotion() {
 
     motionEnabled = true;
 
-
     motionButton.html(
       "PHONE MOTION ON"
+    );
+
+    calibrateButton.show();
+
+
+    // ------------------------------------------------
+    // AUTO CALIBRATE
+    //
+    // Gives sensor a moment to send data,
+    // then uses current holding position.
+    // ------------------------------------------------
+
+    setTimeout(
+      () => {
+
+        if (hasOrientationData) {
+          calibrateMotion();
+        }
+
+      },
+      500
     );
 
   }
