@@ -24,7 +24,9 @@ let bgColorPicker;
 
 function setup() {
 
-  createCanvas(1800, 950);
+  // Responsive canvas:
+  // fills desktop, tablet or phone screen
+  createCanvas(windowWidth, windowHeight);
 
   pixelDensity(1);
   noStroke();
@@ -94,7 +96,7 @@ function setup() {
 
 
   // --------------------------------------------------
-  // BACKGROUND
+  // BACKGROUND COLOUR
   // --------------------------------------------------
 
   let bgLabel = createDiv("BG");
@@ -156,6 +158,17 @@ function draw() {
 
 
   // --------------------------------------------------
+  // RESPONSIVE BASE BLOB SIZE
+  //
+  // Uses the shortest screen dimension,
+  // so it adapts to portrait / landscape / desktop.
+  // --------------------------------------------------
+
+  let baseBlobSize =
+    min(width, height) * 1.05;
+
+
+  // --------------------------------------------------
   // TARGET MOVEMENT
   // --------------------------------------------------
 
@@ -184,7 +197,7 @@ function draw() {
 
   else {
 
-    // Mouse coordinates relative to centre
+    // Mouse position relative to centre
 
     let nx =
       (mouseX - width / 2) /
@@ -208,13 +221,22 @@ function draw() {
     );
 
 
-    // Maximum movement
+    // ------------------------------------------------
+    // Responsive mouse movement
+    // ------------------------------------------------
+
+    let maxMoveX =
+      width * 0.28;
+
+    let maxMoveY =
+      height * 0.28;
+
 
     targetX =
-      nx * 500;
+      nx * maxMoveX;
 
     targetY =
-      ny * 300;
+      ny * maxMoveY;
   }
 
 
@@ -240,7 +262,7 @@ function draw() {
   // --------------------------------------------------
   // REST POSITION
   //
-  // Both blobs overlap in the centre
+  // Both blobs overlap exactly in the centre
   // --------------------------------------------------
 
   let centerX =
@@ -253,7 +275,7 @@ function draw() {
   // --------------------------------------------------
   // REAR / COLOUR BLOB
   //
-  // Moves slightly opposite direction
+  // Moves slightly in the opposite direction
   // --------------------------------------------------
 
   let blobX =
@@ -268,7 +290,7 @@ function draw() {
   // --------------------------------------------------
   // FRONT / WHITE BLOB
   //
-  // Follows the mouse / phone
+  // Follows mouse / phone tilt
   // --------------------------------------------------
 
   let lightX =
@@ -287,19 +309,19 @@ function draw() {
   drawSoftBlob(
     blobX,
     blobY,
-    760 * blobScale,
+    baseBlobSize * blobScale,
     blobColorPicker.color()
   );
 
 
   // --------------------------------------------------
-  // DRAW FRONT BLOB
+  // DRAW FRONT / WHITE BLOB
   // --------------------------------------------------
 
   drawSoftBlob(
     lightX,
     lightY,
-    760 * blobScale,
+    baseBlobSize * blobScale,
     color(255)
   );
 }
@@ -383,6 +405,8 @@ function handleOrientation(event) {
 
   // --------------------------------------------------
   // LEFT / RIGHT
+  //
+  // gamma ≈ -90 → +90
   // --------------------------------------------------
 
   if (event.gamma !== null) {
@@ -401,6 +425,9 @@ function handleOrientation(event) {
   // --------------------------------------------------
 
   if (event.beta !== null) {
+
+    // Temporary neutral portrait position.
+    // We can replace this with CALIBRATE next.
 
     let adjustedBeta =
       event.beta - 45;
@@ -475,6 +502,19 @@ async function enableMotion() {
       "MOTION ERROR"
     );
   }
+}
+
+
+// ----------------------------------------------------
+// RESPONSIVE RESIZE
+// ----------------------------------------------------
+
+function windowResized() {
+
+  resizeCanvas(
+    windowWidth,
+    windowHeight
+  );
 }
 
 
